@@ -1,0 +1,145 @@
+===============================================================================
+  AFTERLIFE  //  CONTROLS QUICK REFERENCE
+  The Echoes Never Die  //  Castle Danger Music Company
+===============================================================================
+
+Afterlife is a convolution reverb and a delay on one insert, with two lanes
+underneath: REVERB and DELAY. The knobs set how each effect sounds through
+the whole song. The lanes let you change one part of it, like a word or a
+phrase, by marking a SECTION.
+
+Tip: double-click a knob to reset it. Double-click the value under a knob to
+type an exact number.
+
+
+-------------------------------------------------------------------------------
+REVERB
+-------------------------------------------------------------------------------
+  SPACE         The room the reverb is built from:
+                  CHAMBER      a small stone room, tight and natural
+                  CRYPT        low stone ceiling, boxy and cold
+                  CATACOMB     long tunnels, the walls flutter back
+                  CATHEDRAL    huge, a slow swell and a long dark tail
+                  CISTERN      an underground tank, concrete and water, rings
+                  IRON PLATE   a steel plate, instantly dense and bright
+                  MAUSOLEUM    a marble hall, bright and polished
+                  THE VOID     no walls at all, blooms in and lingers
+                  LOADED IR    the impulse response you loaded
+  LOAD IR       Load your own impulse response (WAV, AIFF or FLAC, up to 16
+                seconds). The file is remembered with the song. If you move
+                it, the screen says IR MISSING; load it again.
+  ON            Reverb on / off.
+  SEND          How much of the track goes into the reverb, between
+                sections. The REVERB lane's sections override it.
+  DECAY         How long the tail takes to die away (60 dB). With LOADED IR
+                it trims the IR's tail. Set it long to hear the whole file.
+  PRE-DELAY     A gap before the reverb starts, so the words stay clear in
+                front of it.
+  WIDTH         Stereo width of the reverb: 0% mono, 100% normal, 150% extra
+                wide.
+  LOW CUT       Takes the mud out of the reverb.
+  HIGH CUT      Darkens the reverb.
+  DUCK          Pushes the reverb down while the track is playing, so it
+                blooms in the gaps.
+  LEVEL         The reverb's level in the mix.
+
+  The screen shows the space's decay. Its lamp lights while a REVERB
+  section is playing, next to how much is going in right now.
+
+
+-------------------------------------------------------------------------------
+DELAY
+-------------------------------------------------------------------------------
+  SYNC / FREE   SYNC: the delay time follows the song's tempo (TIME is a note
+                value: 1/64 to 1/1, with dotted "." and triplet "T").
+                FREE: TIME is in milliseconds.
+  STEREO / PING / MONO
+                STEREO: left echoes left, right echoes right.
+                PING: the echoes bounce from side to side.
+                MONO: one echo in the middle.
+  ON            Delay on / off.
+  TIME          The delay time.
+  FEEDBACK      How many times the echo repeats.
+  TONE          Darkens each repeat a little more.
+  LOW CUT       Thins each repeat a little more.
+  DIRT          Tape grit: saturation, wow and flutter on the repeats.
+  DUCK          Pushes the echoes down while the track is playing, so they
+                answer in the gaps.
+  SEND          How much of the track goes into the delay, between sections.
+  LEVEL         The delay's level in the mix.
+
+  The screen shows where the echoes land and how they fade. Cream marks the
+  main echo (the knobs) and yellow marks the last throw (a DELAY section).
+  Its lamp lights while a DELAY section is playing.
+
+
+-------------------------------------------------------------------------------
+THE LANES
+-------------------------------------------------------------------------------
+  Both lanes show your track's waveform with the song's bars (or seconds)
+  along the top. The dashed line is the knob's SEND: what the lane does
+  between sections.
+
+  MAKE A SECTION     Drag across a lane. Double-click a lane for a section
+                     one beat long.
+  MOVE IT            Drag the middle of it.
+  RESIZE IT          Drag its left or right edge.
+  HOW MUCH GOES IN   Drag its top line up or down (or use SEND under SECTION).
+  DELETE IT          Select it and press DELETE / BACKSPACE, use DELETE
+                     under SECTION, or right-click it.
+  RIGHT-CLICK        Full send, half, KILL (nothing goes in), the throw's
+                     time and feedback, copy to the other lane, delete. On
+                     an empty spot: add a section, or clear the lane.
+
+  REVERB lane   A section sets how much goes into the reverb while it plays:
+                more reverb on one word, or KILL for none.
+  DELAY lane    A section sends the track into a THROW echo instead of the
+                main one, with its own TIME (or the TIME knob) and FEEDBACK.
+                The throw keeps ringing with those settings after the
+                section ends, while the main echo carries on with the knobs.
+
+  Sections only control what goes INTO the effects, so a reverb tail or a
+  throw never cuts off when the section ends: it rings out.
+  FADE (under SECTION) fades each section in and out so nothing clicks.
+
+  FOLLOW        The lanes scroll with your DAW's playhead. Scrolling, or
+                dragging the ruler, turns it off. Click FOLLOW to turn it
+                back on.
+  SNAP          Section edges snap to the beat, 1/8 or 1/16 of the song's
+                grid, or not at all.
+  - / +         Zoom out / in. Ctrl / Cmd + scroll zooms around the mouse.
+  SECTIONS      Sections on / off. Off: both effects follow their knobs all
+                the way through (handy for comparing).
+  FORGET WAVE   Clears the waveform drawn so far. Your sections stay.
+
+  THE WAVEFORM
+  As an insert, a plugin can only hear what the DAW plays through it, so
+  Afterlife draws the waveform as the song plays. Play the song through
+  once. The waveform is saved with the song.
+  With ARA (Fender Studio Pro: drag Afterlife onto the clip itself; Logic,
+  Cubase, Reaper: as an ARA extension), Afterlife reads the clip as soon as
+  it's applied and draws the whole thing at once. The status screen says
+  "ARA // 1 OF 1 CLIP READ".
+
+  Sections are placed on the song's timeline (in seconds). If you move the
+  vocal clip later, move its sections too.
+  Sections only play while the song is playing. When the transport is
+  stopped, the knobs rule.
+
+
+-------------------------------------------------------------------------------
+OUTPUT
+-------------------------------------------------------------------------------
+  DRY           The untouched track. Set it to 0% when Afterlife is on an FX
+                bus (or pick the "FX Bus: 100% Wet" preset).
+  OUTPUT        Final output trim.
+  WET gauge     (top left) How much reverb + delay is coming out.
+
+
+-------------------------------------------------------------------------------
+PRESETS
+-------------------------------------------------------------------------------
+  Presets only set the knobs. Your sections belong to the song and a preset
+  never touches them. User presets are saved here:
+      macOS:    ~/Library/Application Support/Castle Danger/Afterlife/Presets
+      Windows:  %APPDATA%\Castle Danger\Afterlife\Presets

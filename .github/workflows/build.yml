@@ -1,0 +1,122 @@
+name: Build Afterlife
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfreetype6-dev libfontconfig1-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxcomposite-dev libxrender-dev libxext-dev
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DAFTERLIFE_TESTS_ONLY=ON
+      - name: Build checks
+        run: cmake --build build --config Release --target AfterlifeSnapshot -j4
+      - name: Run DSP + preset checks, render GUI
+        run: mkdir -p snapshots && ./build/AfterlifeSnapshot_artefacts/Release/AfterlifeSnapshot snapshots
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gui-snapshots
+          path: snapshots/*.png
+
+  # ARA: build the real VST3 with ARA on Linux, then a tiny ARA host applies it to a clip and checks it
+  ara-host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfreetype6-dev libfontconfig1-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxcomposite-dev libxrender-dev libxext-dev libasound2-dev
+      - name: ARA SDK
+        run: git clone -q --depth 1 --branch releases/2.3.0 --recurse-submodules --shallow-submodules https://github.com/Celemony/ARA_SDK.git "$RUNNER_TEMP/ARA_SDK"
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DAFTERLIFE_ARA_SDK="$RUNNER_TEMP/ARA_SDK"
+      - name: Build
+        run: cmake --build build --config Release --target Afterlife_VST3 AfterlifeARAHost -j4
+      - name: Apply Afterlife to a clip through ARA and check it
+        run: ./build/AfterlifeARAHost_artefacts/Release/AfterlifeARAHost "$PWD/build/Afterlife_artefacts/Release/VST3/Afterlife.vst3"
+
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15-intel, windows-latest]   # the Intel runner still builds universal arm64 + x86_64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: ARA SDK (Afterlife on drawn from the clip)
+        shell: bash
+        run: git clone -q --depth 1 --branch releases/2.3.0 --recurse-submodules --shallow-submodules https://github.com/Celemony/ARA_SDK.git "$RUNNER_TEMP/ARA_SDK"
+      - name: Configure
+        shell: bash
+        run: |
+          ARA="$RUNNER_TEMP/ARA_SDK"
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 -DAFTERLIFE_ARA_SDK="$ARA"
+          else
+            cmake -B build -DCMAKE_BUILD_TYPE=Release -DAFTERLIFE_ARA_SDK="$ARA"
+          fi
+      - name: Build
+        run: cmake --build build --config Release --target Afterlife_VST3
+      - name: Build AU (macOS)
+        if: runner.os == 'macOS'
+        run: cmake --build build --config Release --target Afterlife_AU
+      - name: Check universal + ad-hoc sign (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -e
+          for b in build/*_artefacts/Release/VST3/*.vst3 build/*_artefacts/Release/AU/*.component; do
+            [ -e "$b" ] || continue
+            n=$(basename "$b"); n="${n%.*}"
+            bin="$b/Contents/MacOS/$n"
+            archs=$(lipo -archs "$bin"); minos=$(vtool -show-build "$bin" 2>/dev/null | awk '/minos/{print $2; exit}')
+            echo "$n: $archs (min macOS $minos)"
+            if [[ "$archs" != *arm64* || "$archs" != *x86_64* ]]; then echo "::error::$n is not universal ($archs)"; exit 1; fi
+            codesign --force --deep -s - "$b"
+          done
+      - name: Package release zip (same layout as the site downloads)
+        shell: bash
+        run: |
+          VER=$(sed -n 's/^project(AFTERLIFE VERSION \([0-9.]*\)).*/\1/p' CMakeLists.txt)
+          OS=$([ "$RUNNER_OS" = "macOS" ] && echo macOS || echo Windows)
+          ZIP="Afterlife-v${VER}-${OS}.zip"
+          R=build/Afterlife_artefacts/Release
+          mkdir -p pkg/Afterlife/VST3
+          cp readme.txt controls.txt LICENSE.txt THIRD-PARTY-NOTICES.txt pkg/Afterlife/
+          cp -R "$R/VST3/Afterlife.vst3" pkg/Afterlife/VST3/
+          if [ "$OS" = "macOS" ]; then
+            mkdir -p pkg/Afterlife/AU && cp -R "$R/AU/Afterlife.component" pkg/Afterlife/AU/
+            (cd pkg && ditto -c -k --sequesterRsrc --keepParent Afterlife "../$ZIP")
+          else
+            (cd pkg && 7z a -tzip -mx=9 "../$ZIP" Afterlife > /dev/null)   # 7z writes forward-slash paths
+          fi
+          ls -la "$ZIP"
+          BR="downloads-$(echo $OS | tr 'A-Z' 'a-z')"
+          mkdir -p /tmp/dl && cp "$ZIP" /tmp/dl/ && cd /tmp/dl && git init -q -b "$BR" && git add -A
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -qm "$ZIP for ${GITHUB_SHA}"
+          git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}" "$BR"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Afterlife-${{ runner.os }}
+          path: |
+            readme.txt
+            controls.txt
+            LICENSE.txt
+            THIRD-PARTY-NOTICES.txt
+            build/Afterlife_artefacts/Release/VST3
+            build/Afterlife_artefacts/Release/AU
