@@ -119,7 +119,7 @@ jobs:
           $ver = (Select-String -Path CMakeLists.txt -Pattern 'project\(AFTERLIFE VERSION ([0-9.]+)\)').Matches[0].Groups[1].Value
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress | Out-Null }
-          & $iscc "/DVER=$ver" installer\windows\afterlife.iss
+          & $iscc "/DAppVer=$ver" installer\windows\afterlife.iss
           if ($LASTEXITCODE -ne 0) { exit 1 }
           Copy-Item "build-win\Afterlife-v$ver-Windows-Setup.exe" .
       - name: Test-install it on this PC
@@ -145,7 +145,7 @@ jobs:
           R=build/Afterlife_artefacts/Release
           mkdir -p pkg/Afterlife/VST3
           cp readme.txt controls.txt LICENSE.txt THIRD-PARTY-NOTICES.txt pkg/Afterlife/
-          INST=$(ls Afterlife-v*-macOS-Installer.pkg Afterlife-v*-Windows-Setup.exe 2>/dev/null | head -1)
+          if [ "$OS" = "macOS" ]; then INST="Afterlife-v${VER}-macOS-Installer.pkg"; else INST="Afterlife-v${VER}-Windows-Setup.exe"; fi
           cp "$INST" pkg/Afterlife/   # the installer; VST3 / AU folders stay for installing by hand
           cp -R "$R/VST3/Afterlife.vst3" pkg/Afterlife/VST3/
           if [ "$OS" = "macOS" ]; then
