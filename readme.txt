@@ -1,4 +1,27 @@
 ===============================================================================
+  INSTALLING AFTERLIFE
+===============================================================================
+
+THE EASY WAY: USE THE INSTALLER
+  macOS:    double-click  Afterlife-v<version>-macOS-Installer.pkg
+            Installs the VST3 and AU for every DAW (in /Library/Audio/Plug-Ins)
+            and the quick guide (in /Applications/Castle Danger Music Company).
+            It clears the download flag and resets the Audio Unit cache
+            itself, so no Terminal is needed. If you installed Afterlife by
+            hand before, that copy is moved to
+            ~/Library/Audio/Plug-Ins Disabled/Castle Danger (older copies).
+            The installer isn't signed by Apple yet, so the first time macOS
+            may block it. Go to System Settings > Privacy & Security, scroll
+            down and click "Open Anyway", or right-click the .pkg > Open.
+  Windows:  double-click  Afterlife-v<version>-Windows-Setup.exe
+            Installs the VST3 to C:\Program Files\Common Files\VST3. If
+            Windows SmartScreen appears, click "More info" > "Run anyway".
+            To uninstall, use Settings > Apps > Afterlife.
+  Then open your DAW and rescan plug-ins (see section 9 below).
+
+Prefer to install by hand? The VST3 (and AU) folders are in the zip too:
+
+===============================================================================
   INSTALLING AN UNSIGNED VST3 / AU PLUGIN BY HAND
   (example plugin: Afterlife by Castle Danger)
 ===============================================================================

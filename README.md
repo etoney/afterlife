@@ -19,8 +19,10 @@ See `controls.txt` for every control and `readme.txt` for installing.
 
 Pushing to `main` runs GitHub Actions. It builds macOS (VST3 + AU, universal, with ARA) and Windows (VST3, with ARA), then:
 
-- uploads the builds as workflow artifacts, and
-- pushes the release zips to the `downloads-macos` / `downloads-windows` branches.
+- builds the **installers**: `Afterlife-v<version>-macOS-Installer.pkg` (`installer/mac`) and `Afterlife-v<version>-Windows-Setup.exe` (Inno Setup, `installer/windows`), and **test-installs each one** on the CI Mac / PC;
+- signs the plug-ins and the .pkg with Developer ID and notarizes it, **when the Apple secrets are set in this repo** (`MACOS_CERT_APP_P12`, `MACOS_CERT_INSTALLER_P12`, `MACOS_CERT_PASSWORD`, `NOTARY_KEY_P8`, `NOTARY_KEY_ID`, `NOTARY_ISSUER_ID`, the same ones as the Mix System installer). Without them the installer is unsigned;
+- uploads everything as workflow artifacts, and
+- pushes the installer and the release zip (installer + VST3 / AU for installing by hand + docs) to the `downloads-macos` / `downloads-windows` branches.
 
 Two Linux jobs also run:
 

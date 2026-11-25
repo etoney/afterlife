@@ -55,7 +55,10 @@ jobs:
       matrix:
         os: [macos-15-intel, windows-latest]   # the Intel runner still builds universal arm64 + x86_64
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
+    timeout-minutes: 60
+    env:   # only whether the Apple secrets exist (same ones as the Mix System installer), not the secrets themselves
+      HAVE_SIGNING: ${{ secrets.MACOS_CERT_APP_P12 != '' && secrets.MACOS_CERT_INSTALLER_P12 != '' }}
+      HAVE_NOTARY: ${{ secrets.NOTARY_KEY_P8 != '' }}
     steps:
       - uses: actions/checkout@v4
       - name: ARA SDK (Afterlife on drawn from the clip)
@@ -89,6 +92,50 @@ jobs:
             if [[ "$archs" != *arm64* || "$archs" != *x86_64* ]]; then echo "::error::$n is not universal ($archs)"; exit 1; fi
             codesign --force --deep -s - "$b"
           done
+      - name: Developer ID signing (macOS, when the Apple secrets are set)
+        if: runner.os == 'macOS' && env.HAVE_SIGNING == 'true'
+        env:
+          MACOS_CERT_APP_P12: ${{ secrets.MACOS_CERT_APP_P12 }}
+          MACOS_CERT_INSTALLER_P12: ${{ secrets.MACOS_CERT_INSTALLER_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+        run: bash installer/mac/sign.sh
+      - name: Build the installer (macOS .pkg)
+        if: runner.os == 'macOS'
+        run: bash installer/mac/build.sh
+      - name: Notarize and staple (macOS, when the Apple secrets are set)
+        if: runner.os == 'macOS' && env.HAVE_SIGNING == 'true' && env.HAVE_NOTARY == 'true'
+        env:
+          NOTARY_KEY_P8: ${{ secrets.NOTARY_KEY_P8 }}
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
+        run: bash installer/mac/notarize.sh
+      - name: Test-install it on this Mac
+        if: runner.os == 'macOS'
+        run: bash installer/mac/test-install.sh
+      - name: Build the installer (Windows setup .exe, Inno Setup)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ver = (Select-String -Path CMakeLists.txt -Pattern 'project\(AFTERLIFE VERSION ([0-9.]+)\)').Matches[0].Groups[1].Value
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress | Out-Null }
+          & $iscc "/DVER=$ver" installer\windows\afterlife.iss
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          Copy-Item "build-win\Afterlife-v$ver-Windows-Setup.exe" .
+      - name: Test-install it on this PC
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $exe = (Get-ChildItem Afterlife-v*-Windows-Setup.exe)[0].FullName
+          $p = Start-Process -FilePath $exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/LOG=install.log' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { Get-Content install.log -Tail 40; exit 1 }
+          $vst = "${env:CommonProgramFiles}\VST3\Afterlife.vst3"
+          $guide = "${env:ProgramFiles}\Castle Danger Music Company\Guides\Afterlife - controls.txt"
+          Get-ChildItem $vst -Recurse | Format-Table FullName
+          $fail = 0
+          if (-not (Test-Path "$vst\Contents\x86_64-win\Afterlife.vst3")) { Write-Host "::error::Afterlife.vst3 missing"; $fail = 1 }
+          if (-not (Test-Path $guide)) { Write-Host "::error::guide missing"; $fail = 1 }
+          exit $fail
       - name: Package release zip (same layout as the site downloads)
         shell: bash
         run: |
@@ -98,6 +145,8 @@ jobs:
           R=build/Afterlife_artefacts/Release
           mkdir -p pkg/Afterlife/VST3
           cp readme.txt controls.txt LICENSE.txt THIRD-PARTY-NOTICES.txt pkg/Afterlife/
+          INST=$(ls Afterlife-v*-macOS-Installer.pkg Afterlife-v*-Windows-Setup.exe 2>/dev/null | head -1)
+          cp "$INST" pkg/Afterlife/   # the installer; VST3 / AU folders stay for installing by hand
           cp -R "$R/VST3/Afterlife.vst3" pkg/Afterlife/VST3/
           if [ "$OS" = "macOS" ]; then
             mkdir -p pkg/Afterlife/AU && cp -R "$R/AU/Afterlife.component" pkg/Afterlife/AU/
@@ -107,13 +156,15 @@ jobs:
           fi
           ls -la "$ZIP"
           BR="downloads-$(echo $OS | tr 'A-Z' 'a-z')"
-          mkdir -p /tmp/dl && cp "$ZIP" /tmp/dl/ && cd /tmp/dl && git init -q -b "$BR" && git add -A
+          mkdir -p /tmp/dl && cp "$ZIP" "$INST" /tmp/dl/ && cd /tmp/dl && git init -q -b "$BR" && git add -A
           git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -qm "$ZIP for ${GITHUB_SHA}"
           git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}" "$BR"
       - uses: actions/upload-artifact@v4
         with:
           name: Afterlife-${{ runner.os }}
           path: |
+            Afterlife-v*-macOS-Installer.pkg
+            Afterlife-v*-Windows-Setup.exe
             readme.txt
             controls.txt
             LICENSE.txt
